@@ -2,11 +2,12 @@ import torch
 
 class Optimizable:
     '''
-    This is the interface for anything that has parameters that need to be
-    optimized, somewhat like torch.nn.Model but with the right plumbing for
-    hyperoptimizability. (Specifically, torch.nn.Model uses the Parameter
-    interface which does not give us enough control about the detachments.)
-    Nominal operation of an Optimizable at the lowest level is as follows:
+    This interface is used for objects that have parameters that need 
+    to be optimized. It is similar to torch.nn.Module, but with additional 
+    features to support hyperoptimization. The Optimizable interface provides 
+    more control over parameter detachments compared to the Parameter 
+    interface used by torch.nn.Module. At the lowest level, an Optimizable 
+    object operates as follows:
         o = MyOptimizable(...)
         o.initialize()
         loop {
@@ -16,7 +17,7 @@ class Optimizable:
             loss.backward()
             o.step()
         }
-    Optimizables recursively handle updates to their optimiz*ers*.
+    Optimizables recursively handle updates to their optimizers.
     '''
     def __init__(self, parameters, optimizer):
         self.parameters = parameters # a dict mapping names to tensors
@@ -24,13 +25,15 @@ class Optimizable:
         self.all_params_with_gradients = []
 
     def initialize(self):
-        ''' Initialize parameters, e.g. with a Kaiming initializer. '''
+        # Initialize the parameters of the object, for example using a Kaiming initializer. 
+        # This step ensures that the parameters are initialized with suitable values before optimization begins.
         pass
     
     def begin(self):
-        ''' Enable gradient tracking on current parameters. '''
+    # Enable gradient tracking on the current parameters. This allows 
+    # the gradients of the parameters to be computed during the optimization process.
         for param in self.all_params_with_gradients:
-             param.grad = None
+            param.grad = None
         self.all_params_with_gradients.clear()
         for name, param in self.parameters.items():
             param.requires_grad_() # keep gradient information...
@@ -39,22 +42,23 @@ class Optimizable:
         self.optimizer.begin()
 
     def zero_grad(self):
-        ''' Set all gradients to zero. '''
+        # Set all gradients of the parameters to zero. This ensures that the gradients from previous iterations or computations are cleared before computing the gradients for the current optimization step.
         for param in self.all_params_with_gradients:
             param.grad = torch.zeros_like(param)
         self.optimizer.zero_grad()
 
-    ''' Note: at this point you would probably call .backwards() on the loss
-    function. '''
+    '''Note: at this point, you would typically call the .backward() method on 
+    the loss function. This computes the gradients of the loss with respect to 
+    the parameters, allowing for backpropagation and subsequent gradient updates 
+    during the optimization process.'''
 
     def step(self):
-        ''' Update parameters '''
+        # Update parameters
         pass
 
 class NoOpOptimizer(Optimizable):
-    '''
-    NoOpOptimizer sits on top of a stack, and does not affect what lies below.
-    '''
+    # NoOpOptimizer is a top-level optimizer in the stack that has no effect on the optimizers below it.
+    
     def __init__(self):
         pass
 
@@ -74,9 +78,7 @@ class NoOpOptimizer(Optimizable):
         return ''
 
 class SGD(Optimizable):
-    '''
-    A hyperoptimizable SGD.
-    '''
+    # A hyperoptimizable SGD.
     def __init__(self, alpha=0.01, mu=0.0, optimizer=NoOpOptimizer()):
         self.mu = mu
         self.state = {}
@@ -104,9 +106,7 @@ class SGD(Optimizable):
         return 'sgd / '+ str(self.optimizer)
 
 class SGDPerParam(Optimizable):
-    '''
-    Optimizes parameters individually with SGD.
-    '''
+    # It optimizes parameters individually using the Stochastic Gradient Descent (SGD) algorithm.
     def __init__(self, params, optimizer=NoOpOptimizer()):
         parameters = {k + '_alpha' : torch.tensor(v) for k, v in params}
         super().__init__(parameters, optimizer)
@@ -123,9 +123,7 @@ class SGDPerParam(Optimizable):
         return 'sgdPerParam / ' + str(self.optimizer)
 
 class AdaGrad(Optimizable):
-    '''
-    A hyperoptimizable AdaGrad.
-    '''
+    # A hyperoptimizable AdaGrad.
     def __init__(self, alpha=0.01, optimizer=NoOpOptimizer()):
         self.eps = 1e-10
         self.cache = {}
@@ -149,9 +147,7 @@ class AdaGrad(Optimizable):
         return 'adagrad / ' + str(self.optimizer)
 
 class RMSProp(Optimizable):
-    '''
-    A hyperoptimizable RMSProp.
-    '''
+    # A hyperoptimizable RMSProp.
     def clamp(x):
         return (x.tanh() + 1.) / 2.
 
@@ -186,9 +182,7 @@ class RMSProp(Optimizable):
         return 'rmsprop / ' + str(self.optimizer)
 
 class RMSPropAlpha(Optimizable):
-    '''
-    A hyperoptimizable RMSProp for only alpha.
-    '''
+    # A hyperoptimizable RMSProp for only alpha.
     def __init__(self, alpha=0.01, gamma=0.99, optimizer=NoOpOptimizer()):
         self.eps = 1e-8
         self.gamma = gamma
@@ -215,9 +209,7 @@ class RMSPropAlpha(Optimizable):
         return 'rmspropAlpha / ' + str(self.optimizer)
 
 class Adam(Optimizable):
-    '''
-    A hyperoptimizable Adam optimizer.
-    '''
+    # A hyperoptimizable Adam optimizer.
     def clamp(x):
         return (x.tanh() + 1.) / 2.
 
@@ -248,8 +240,8 @@ class Adam(Optimizable):
                     'm': torch.zeros_like(param),
                     'v': torch.zeros_like(param) +\
                             self.eps
-# NOTE that we add a little `fudge factor' here because sqrt is not
-# differentiable at exactly zero
+# It is important to NOTE that a small "fudge factor" is added in this step to account
+# for the fact that the sqrt function is not differentiable exactly at zero.
                 }
             g = param.grad.detach()
             self.cache[name]['m'] = m =\
@@ -269,8 +261,8 @@ class Adam(Optimizable):
         return 'adam / ' + str(self.optimizer)
 
 class AdamBaydin(Optimizable):
-    ''' Same as above, but only optimizes the learning rate, treating the
-    remaining hyperparameters as constants. '''
+    # Same as above, but only optimizes the learning rate, treating the
+    # remaining hyperparameters as constants. 
 
     def __init__(
         self,
@@ -300,8 +292,8 @@ class AdamBaydin(Optimizable):
                     'm': torch.zeros_like(param),
                     'v': torch.zeros_like(param) +\
                             10.**self.log_eps
-# NOTE that we add a little `fudge factor' here because sqrt is not
-# differentiable at exactly zero
+# It is important to NOTE that a small "fudge factor" is added in this step to account
+# for the fact that the sqrt function is not differentiable exactly at zero.
                 }
 
             g = param.grad.detach()
@@ -324,10 +316,8 @@ class AdamBaydin(Optimizable):
 
 
 class ModuleWrapper(Optimizable):
-    '''
-    This class tries to convert a torch.nn.Module to an Optimizable, handling
-    the internal plumbing needed to update parameters correctly.
-    '''
+    # This class aims to convert a torch.nn.Module into an Optimizable, taking care of 
+    # the necessary internal mechanisms required for updating parameters correctly.
     def __init__(self, module, optimizer=NoOpOptimizer()):
         self.module = module
         parameters = {k:v for k, v in module.named_parameters(recurse=True)}
@@ -337,7 +327,7 @@ class ModuleWrapper(Optimizable):
         self.optimizer.initialize()
     
     def zero_grad(self):
-        """ Set all gradients to zero. """
+        # Set all gradients to zero. 
         self.module.zero_grad()
         for param in self.all_params_with_gradients:
             param.grad = torch.zeros_like(param)

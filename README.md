@@ -2,23 +2,10 @@
 
 ## Abstract
 
-Working with any gradient-based machine learning algorithm involves the tedious task of tuning the optimizer's hyperparameters, such as the step size. Recent work has shown how the step size can itself be "learned" on-line by gradient descent, by manually deriving expressions for "hypergradients" ahead of time.
-
-We show how to *automatically* compute hypergradients with a simple and elegant modification to backpropagation. This allows us to apply the method to other hyperparameters besides the step size, such as the momentum coefficient. We can even recursively apply the method to its own *hyper*-hyperparameters, and so on *ad infinitum*. As these towers of optimizers grow taller, they become less sensitive to the initial choice of hyperparameters. We present experiments validating this for MLPs, CNNs, and RNNs.
+The process of adjusting hyperparameters, such as the step size, for an optimizer used in gradient-based machine learning algorithms can be a time-consuming and tedious task. Previous research has demonstrated that it is possible to optimize the step size along with the model parameters by manually deriving expressions for "hypergradients" in advance. 
+In this article, we propose a modification to backpropagation that enables the *automatic* computation of hypergradients in a straightforward and elegant manner. This method can be applied to various optimizers and hyperparameters such as momentum coefficients, with ease. Furthermore, we can recursively apply the method to their own *hyper*-hyperparameters, resulting in an infinite cascade of optimizers. As the number of optimizers increases, they become less sensitive to the initial choice of hyperparameters. We conducted experiments on Multi-Layer Perceptron (MLP), Multi-Layer Perceptron (CNN), and Recurrent Neural Network (RNN) to validate our approach. Eventually, we provide a simple PyTorch implementation of this algorithm (https://github.com/fismoilov20/gradient-descent-algorithm.git).
 
 *This repository contains an implementation of the algorithm in our paper.*
-
-## Citation
-
-```text
-@article{chandra2022gradient,
-    title = {Gradient Descent Algorithm as Hyperparameter Optimizer},
-    author = {Chandra, Kartik and Xie, Audrey and Ragan-Kelley, Jonathan and Meijer, Erik},
-    journal = {NeurIPS},
-    year = {2022},
-    url = {https://arxiv.org/abs/1909.13371}
-}
-```
 
 ## Install
 
@@ -35,7 +22,7 @@ pip install gradient-descent-the-ultimate-optimizer
 
 ## Example
 
-First, build the MLP and initialize data loaders.
+1. Build the MLP and initialize data loaders.
 
 ```python
 import math
@@ -45,9 +32,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class MNIST_FullyConnected(nn.Module):
-    """
-    A fully-connected NN for the MNIST task. This is itself not an optimizer but can be optimized.
-    """
+    # A fully-connected neural network model designed for the MNIST dataset. This model is not an optimizer
+    # itself but can be optimized using different optimization algorithms.
     def __init__(self, num_inp, num_hid, num_out):
         super(MNIST_FullyConnected, self).__init__()
         self.layer1 = nn.Linear(num_inp, num_hid)
@@ -58,7 +44,7 @@ class MNIST_FullyConnected(nn.Module):
         nn.init.kaiming_uniform_(self.layer2.weight, a=math.sqrt(5))
 
     def forward(self, x):
-        """Compute a prediction."""
+        # Compute a prediction using the given input data.
         x = self.layer1(x)
         x = torch.tanh(x)
         x = self.layer2(x)
@@ -78,7 +64,7 @@ dl_test = torch.utils.data.DataLoader(mnist_test, batch_size=10000, shuffle=Fals
 model = MNIST_FullyConnected(28 * 28, 128, 10).to(DEVICE)
 ```
 
-Next, import gradient_descent package and initialize a stack of hyperoptimizers. This example uses the stack `Adam/SGD`.
+2. Next, import the `gradient_descent` package and create a stack of hyperoptimizers. In this example, we initialize a stack called `Adam/SGD`.
 
 ```python
 from gradient_descent_the_ultimate_optimizer import gdtuo
@@ -86,14 +72,14 @@ from gradient_descent_the_ultimate_optimizer import gdtuo
 optim = gdtuo.Adam(optimizer=gdtuo.SGD(1e-5))
 ```
 
-`gdtuo.ModuleWrapper` allows any `nn.Module` to be optimized by hyperoptimizers.
+`gdtuo.ModuleWrapper` enables the optimization of any `nn.Module using` hyperoptimizers.
 
 ```python
 mw = gdtuo.ModuleWrapper(model, optimizer=optim)
 mw.initialize()
 ```
 
-Lastly, use `mw` instead of a PyTorch optimizer to optimize the model. The train loop is nearly identical to what you would typically implement in PyTorch (differences are marked by comments).
+Finally, utilize `mw` as an alternative to a PyTorch optimizer for optimizing the model. The training loop closely resembles the typical implementation in PyTorch, with any variations indicated by comments.
 
 ```python
 for i in range(1, EPOCHS+1):

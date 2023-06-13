@@ -1,5 +1,6 @@
-data
 __pycache__
 dist
-src/gradient_descent_the_ultimate_optimizer.egg-info
+gradient_descent_the_ultimate_optimizer.egg-info
 venv
+data
+src
