@@ -26,7 +26,7 @@ class MNIST_FullyConnected(nn.Module):
         return x
 
 BATCH_SIZE = 256
-EPOCHS = 5
+EPOCHS = 30
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 mnist_train = torchvision.datasets.MNIST('./data', train=True, download=True, transform=torchvision.transforms.ToTensor())
@@ -39,15 +39,15 @@ model = MNIST_FullyConnected(28 * 28, 128, 10).to(DEVICE)
 
 
 # Next, import the `gradient_descent` package and create a stack of hyperoptimizers. In this example, we initialize a stack called `Adam/SGD`.
-from gradient_descent_the_ultimate_optimizer import gdtuo
+from gradient_descent_algorithm import gda
 
-optim = gdtuo.Adam(optimizer=gdtuo.SGD(1e-5))
-
-
-# `gdtuo.ModuleWrapper` enables the optimization of any `nn.Module using` hyperoptimizers.
+optim = gda.Adam(optimizer=gda.SGD(1e-5))
 
 
-mw = gdtuo.ModuleWrapper(model, optimizer=optim)
+# `gda.ModuleWrapper` enables the optimization of any `nn.Module using` hyperoptimizers.
+
+
+mw = gda.ModuleWrapper(model, optimizer=optim)
 mw.initialize()
 
 # Finally, utilize `mw` as an alternative to a PyTorch optimizer for optimizing the model. The training loop closely resembles the typical implementation in PyTorch, with any variations indicated by comments.

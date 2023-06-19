@@ -67,7 +67,7 @@ model = MNIST_FullyConnected(28 * 28, 128, 10).to(DEVICE)
 2. Next, import the `gradient_descent` package and create a stack of hyperoptimizers. In this example, we initialize a stack called `Adam/SGD`.
 
 ```python
-from gradient_descent_the_ultimate_optimizer import gdtuo
+from gradient_descent_algorithm import gda
 
 optim = gdtuo.Adam(optimizer=gdtuo.SGD(1e-5))
 ```
