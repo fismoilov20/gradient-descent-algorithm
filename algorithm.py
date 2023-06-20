@@ -3,6 +3,7 @@ import torch
 import torchvision
 import torch.nn as nn
 import torch.nn.functional as F
+import matplotlib.pyplot as plt
 
 class MNIST_FullyConnected(nn.Module):
     # A fully-connected neural network model designed for the MNIST dataset. This model is not an optimizer
@@ -26,7 +27,7 @@ class MNIST_FullyConnected(nn.Module):
         return x
 
 BATCH_SIZE = 256
-EPOCHS = 10
+EPOCHS = 30
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 mnist_train = torchvision.datasets.MNIST('./data', train=True, download=True, transform=torchvision.transforms.ToTensor())
@@ -36,32 +37,34 @@ dl_test = torch.utils.data.DataLoader(mnist_test, batch_size=10000, shuffle=Fals
 
 model = MNIST_FullyConnected(28 * 28, 128, 10).to(DEVICE)
 
-
-
-# Next, import the `gradient_descent` package and create a stack of hyperoptimizers. In this example, we initialize a stack called `Adam/SGD`.
 from gradient_descent_algorithm import gda
 
 optim = gda.Adam(optimizer=gda.SGD(1e-5))
 
-
-# `gda.ModuleWrapper` enables the optimization of any `nn.Module using` hyperoptimizers.
-
-
 mw = gda.ModuleWrapper(model, optimizer=optim)
 mw.initialize()
 
-# Finally, utilize `mw` as an alternative to a PyTorch optimizer for optimizing the model. The training loop closely resembles the typical implementation in PyTorch, with any variations indicated by comments.
+train_losses = []  # List to store training losses
 
 for i in range(1, EPOCHS+1):
     running_loss = 0.0
     for j, (features_, labels_) in enumerate(dl_train):
-        mw.begin() # call this before each step, enables gradient tracking on desired params
+        mw.begin()
         features, labels = torch.reshape(features_, (-1, 28 * 28)).to(DEVICE), labels_.to(DEVICE)
         pred = mw.forward(features)
         loss = F.nll_loss(pred, labels)
         mw.zero_grad()
-        loss.backward(create_graph=True) # important! use create_graph=True
+        loss.backward(create_graph=True)
         mw.step()
         running_loss += loss.item() * features_.size(0)
     train_loss = running_loss / len(dl_train.dataset)
-    print(f"EPOCH: {i}, TRAIN LOSS: {train_loss}")
+    train_losses.append(train_loss)
+    print("EPOCH: {}, TRAIN LOSS: {}".format(i, train_loss))
+
+# Plotting the training loss
+plt.plot(range(1, EPOCHS+1), train_losses, 'b-o')
+plt.xlabel('Epochs')
+plt.ylabel('Training Loss')
+plt.title('Training Loss over Epochs')
+plt.grid(True)
+plt.show()
