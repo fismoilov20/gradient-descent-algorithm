@@ -39,7 +39,7 @@ model = MNIST_FullyConnected(28 * 28, 128, 10).to(DEVICE)
 
 from gradient_descent_algorithm import gda
 
-optim = gda.Adam(optimizer=gda.SGD(1e-5))
+optim = gda.Adam(optimizer=gda.Adam())
 
 mw = gda.ModuleWrapper(model, optimizer=optim)
 mw.initialize()
