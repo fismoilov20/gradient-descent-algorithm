@@ -27,7 +27,7 @@ class MNIST_FullyConnected(nn.Module):
         return x
 
 BATCH_SIZE = 256
-EPOCHS = 30
+EPOCHS = 5
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 mnist_train = torchvision.datasets.MNIST('./data', train=True, download=True, transform=torchvision.transforms.ToTensor())
@@ -60,6 +60,9 @@ for i in range(1, EPOCHS+1):
     train_loss = running_loss / len(dl_train.dataset)
     train_losses.append(train_loss)
     print("EPOCH: {}, TRAIN LOSS: {}".format(i, train_loss))
+
+# Saving the model
+torch.save(model.state_dict(), 'model.pth')
 
 # Plotting the training loss
 plt.plot(range(1, EPOCHS+1), train_losses, 'b-o')
